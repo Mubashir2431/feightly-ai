@@ -41,3 +41,11 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Backend CDK
+backend/cdk.out/
+backend/.cdk.staging/
+backend/*.js
+backend/*.d.ts
+backend/!jest.config.js
+backend/.env
