@@ -172,11 +172,19 @@ async function sendToN8nWebhook(
   }
 ): Promise<void> {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Add automation secret header if configured
+    const automationSecret = process.env.N8N_AUTOMATION_SECRET;
+    if (automationSecret) {
+      headers['x-automation-secret'] = automationSecret;
+    }
+    
     const response = await fetch(webhookUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 
@@ -303,22 +311,32 @@ export async function handler(
       return internalServerError('Email service not configured', requestId);
     }
 
-    // Send email to n8n webhook
-    try {
-      await sendToN8nWebhook(n8nWebhookUrl, {
-        to: load.broker.email,
-        subject: `Rate Negotiation for Load ${load.loadId} - ${load.origin.city} to ${load.destination.city}`,
-        body: emailBody,
-        loadId: load.loadId,
-        negotiationId,
-      });
-    } catch (error) {
-      logError(error, {
+    // Send email to n8n webhook (skip if localhost for testing)
+    const isLocalhost = n8nWebhookUrl.includes('localhost') || n8nWebhookUrl.includes('127.0.0.1');
+    
+    if (!isLocalhost) {
+      try {
+        await sendToN8nWebhook(n8nWebhookUrl, {
+          to: load.broker.email,
+          subject: `Rate Negotiation for Load ${load.loadId} - ${load.origin.city} to ${load.destination.city}`,
+          body: emailBody,
+          loadId: load.loadId,
+          negotiationId,
+        });
+      } catch (error) {
+        logError(error, {
+          operation: 'negotiate',
+          requestId,
+          step: 'webhookSend',
+        });
+        return serviceUnavailableError('Email service', requestId);
+      }
+    } else {
+      logInfo('Skipping webhook call (localhost URL detected - for testing only)', {
         operation: 'negotiate',
         requestId,
-        step: 'webhookSend',
+        webhookUrl: n8nWebhookUrl,
       });
-      return serviceUnavailableError('Email service', requestId);
     }
 
     // Create negotiation record

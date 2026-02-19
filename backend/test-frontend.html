@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feightly AI Copilot Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .recording {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .response-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .response-box.show {
+            display: block;
+        }
+        
+        .response-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .response-content {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .error {
+            border-left-color: #f5576c;
+        }
+        
+        .success {
+            border-left-color: #4caf50;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .info-box p {
+            margin: 5px 0;
+            color: #1565c0;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .status.recording {
+            background: #f5576c;
+            color: white;
+        }
+        
+        .status.processing {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .status.ready {
+            background: #4caf50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚛 Feightly AI Copilot Test</h1>
+        
+        <!-- Text Copilot Test -->
+        <div class="test-section">
+            <h2>📝 Text Copilot Test</h2>
+            <div class="info-box">
+                <p><strong>Endpoint:</strong> POST /copilot</p>
+                <p><strong>Try:</strong> "Dallas to Atlanta dry van two thirty minimum"</p>
+            </div>
+            
+            <div class="input-group">
+                <label for="text-input">Enter your request:</label>
+                <textarea id="text-input" placeholder="e.g., Dallas to Atlanta dry van two thirty minimum"></textarea>
+            </div>
+            
+            <div class="input-group">
+                <label for="text-driver-id">Driver ID:</label>
+                <input type="text" id="text-driver-id" value="DRIVER-001">
+            </div>
+            
+            <button onclick="testCopilot()">Send to Copilot</button>
+            
+            <div id="text-response" class="response-box">
+                <h3>Response:</h3>
+                <div id="text-response-content" class="response-content"></div>
+            </div>
+        </div>
+        
+        <!-- Voice Input Test -->
+        <div class="test-section">
+            <h2>🎤 Voice Input Test</h2>
+            <div class="info-box">
+                <p><strong>Endpoint:</strong> POST /voice</p>
+                <p><strong>Instructions:</strong> Click "Start Recording", speak your request, then click "Stop Recording"</p>
+                <p><strong>Try saying:</strong> "Dallas to Atlanta dry van two thirty minimum"</p>
+            </div>
+            
+            <div class="input-group">
+                <label for="voice-driver-id">Driver ID:</label>
+                <input type="text" id="voice-driver-id" value="DRIVER-001">
+            </div>
+            
+            <div class="input-group">
+                <label>GPS Coordinates (optional):</label>
+                <input type="text" id="voice-lat" placeholder="Latitude (e.g., 32.7767)" style="width: 48%; display: inline-block;">
+                <input type="text" id="voice-lng" placeholder="Longitude (e.g., -96.797)" style="width: 48%; display: inline-block; margin-left: 4%;">
+            </div>
+            
+            <button id="record-btn" onclick="toggleRecording()">🎤 Start Recording</button>
+            <button id="send-voice-btn" onclick="sendVoiceInput()" disabled>Send Voice Input</button>
+            <div id="voice-status" class="status ready">Ready</div>
+            
+            <div id="voice-response" class="response-box">
+                <h3>Response:</h3>
+                <div id="voice-response-content" class="response-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://f4x56v8gcl.execute-api.us-east-1.amazonaws.com/prod';
+        
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        
+        // Test Text Copilot
+        async function testCopilot() {
+            const text = document.getElementById('text-input').value;
+            const driverId = document.getElementById('text-driver-id').value;
+            
+            if (!text.trim()) {
+                alert('Please enter some text');
+                return;
+            }
+            
+            const responseBox = document.getElementById('text-response');
+            const responseContent = document.getElementById('text-response-content');
+            
+            responseBox.classList.add('show');
+            responseContent.textContent = 'Loading...';
+            responseContent.className = 'response-content';
+            
+            try {
+                const response = await fetch(`${API_BASE}/copilot`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        driverId: driverId,
+                        currentLat: 32.7767,
+                        currentLng: -96.797
+                    })
+                });
+                
+                const data = await response.json();
+                responseContent.textContent = JSON.stringify(data, null, 2);
+                responseContent.classList.add(response.ok ? 'success' : 'error');
+            } catch (error) {
+                responseContent.textContent = `Error: ${error.message}`;
+                responseContent.classList.add('error');
+            }
+        }
+        
+        // Toggle Recording
+        async function toggleRecording() {
+            if (!isRecording) {
+                await startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+        
+        // Start Recording
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    document.getElementById('send-voice-btn').disabled = false;
+                    document.getElementById('voice-status').textContent = 'Recording saved - Ready to send';
+                    document.getElementById('voice-status').className = 'status ready';
+                };
+                
+                mediaRecorder.start();
+                isRecording = true;
+                
+                document.getElementById('record-btn').textContent = '⏹️ Stop Recording';
+                document.getElementById('record-btn').classList.add('recording');
+                document.getElementById('voice-status').textContent = 'Recording...';
+                document.getElementById('voice-status').className = 'status recording';
+                document.getElementById('send-voice-btn').disabled = true;
+            } catch (error) {
+                alert('Error accessing microphone: ' + error.message);
+            }
+        }
+        
+        // Stop Recording
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                isRecording = false;
+                
+                document.getElementById('record-btn').textContent = '🎤 Start Recording';
+                document.getElementById('record-btn').classList.remove('recording');
+            }
+        }
+        
+        // Send Voice Input
+        async function sendVoiceInput() {
+            const driverId = document.getElementById('voice-driver-id').value;
+            const lat = document.getElementById('voice-lat').value;
+            const lng = document.getElementById('voice-lng').value;
+            
+            if (audioChunks.length === 0) {
+                alert('Please record audio first');
+                return;
+            }
+            
+            const responseBox = document.getElementById('voice-response');
+            const responseContent = document.getElementById('voice-response-content');
+            
+            responseBox.classList.add('show');
+            responseContent.textContent = 'Processing audio...';
+            responseContent.className = 'response-content';
+            
+            document.getElementById('voice-status').textContent = 'Processing...';
+            document.getElementById('voice-status').className = 'status processing';
+            
+            try {
+                // Convert audio blob to base64
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const reader = new FileReader();
+                
+                reader.onloadend = async () => {
+                    const base64Audio = reader.result.split(',')[1];
+                    
+                    const payload = {
+                        audioBase64: base64Audio,
+                        driverId: driverId
+                    };
+                    
+                    if (lat && lng) {
+                        payload.currentLat = parseFloat(lat);
+                        payload.currentLng = parseFloat(lng);
+                    }
+                    
+                    try {
+                        const response = await fetch(`${API_BASE}/voice`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        const data = await response.json();
+                        responseContent.textContent = JSON.stringify(data, null, 2);
+                        responseContent.classList.add(response.ok ? 'success' : 'error');
+                        
+                        document.getElementById('voice-status').textContent = response.ok ? 'Success!' : 'Error';
+                        document.getElementById('voice-status').className = response.ok ? 'status ready' : 'status recording';
+                    } catch (error) {
+                        responseContent.textContent = `Error: ${error.message}`;
+                        responseContent.classList.add('error');
+                        document.getElementById('voice-status').textContent = 'Error';
+                        document.getElementById('voice-status').className = 'status recording';
+                    }
+                };
+                
+                reader.readAsDataURL(audioBlob);
+            } catch (error) {
+                responseContent.textContent = `Error: ${error.message}`;
+                responseContent.classList.add('error');
+            }
+        }
+    </script>
+</body>
+</html>

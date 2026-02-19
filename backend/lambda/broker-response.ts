@@ -206,11 +206,19 @@ async function sendToN8nWebhook(
   }
 ): Promise<void> {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Add automation secret header if configured
+    const automationSecret = process.env.N8N_AUTOMATION_SECRET;
+    if (automationSecret) {
+      headers['x-automation-secret'] = automationSecret;
+    }
+    
     const response = await fetch(webhookUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 

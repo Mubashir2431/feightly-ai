@@ -309,7 +309,8 @@ export class FeightlyBackendStack extends cdk.Stack {
         DRIVERS_TABLE_NAME: this.driversTable.tableName,
         NEGOTIATIONS_TABLE_NAME: this.negotiationsTable.tableName,
         BEDROCK_MODEL_ID: 'anthropic.claude-3-haiku-20240307-v1:0',
-        N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'https://webhook.n8n.example.com',
+        N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/send-email',
+        N8N_AUTOMATION_SECRET: process.env.N8N_AUTOMATION_SECRET || '',
       },
       description: 'Start autonomous negotiation with broker',
     });
@@ -330,7 +331,8 @@ export class FeightlyBackendStack extends cdk.Stack {
         DOCUMENTS_TABLE_NAME: this.documentsTable.tableName,
         DOCUMENTS_BUCKET_NAME: this.documentsBucket.bucketName,
         BEDROCK_MODEL_ID: 'anthropic.claude-3-haiku-20240307-v1:0',
-        N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'https://webhook.n8n.example.com',
+        N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/send-email',
+        N8N_AUTOMATION_SECRET: process.env.N8N_AUTOMATION_SECRET || '',
       },
       description: 'Handle broker responses in autonomous negotiation',
     });
@@ -597,6 +599,98 @@ export class FeightlyBackendStack extends cdk.Stack {
         requestParameters: {
           'method.request.path.driverId': true,
         },
+      }
+    );
+
+    // Copilot Lambda - Natural language to structured search
+    const copilotLambda = new lambda.Function(this, 'CopilotLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'copilot.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
+      role: this.lambdaExecutionRole,
+      timeout: cdk.Duration.seconds(60),
+      memorySize: 1024,
+      environment: {
+        LOADS_TABLE_NAME: this.loadsTable.tableName,
+        DRIVERS_TABLE_NAME: this.driversTable.tableName,
+        BEDROCK_MODEL_ID: 'anthropic.claude-3-haiku-20240307-v1:0',
+      },
+      description: 'Parse natural language input and return structured search parameters',
+    });
+
+    // /copilot resource
+    const copilotResource = this.api.root.addResource('copilot');
+    
+    // POST /copilot
+    copilotResource.addMethod(
+      'POST',
+      new apigateway.LambdaIntegration(copilotLambda, {
+        proxy: true,
+        integrationResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': "'*'",
+            },
+          },
+        ],
+      }),
+      {
+        methodResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': true,
+            },
+          },
+        ],
+      }
+    );
+
+    // Voice Input Lambda - Transcribe audio with OpenAI Whisper and parse intent
+    const voiceInputLambda = new lambda.Function(this, 'VoiceInputLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'voice-input.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
+      role: this.lambdaExecutionRole,
+      timeout: cdk.Duration.seconds(120),
+      memorySize: 1024,
+      environment: {
+        LOADS_TABLE_NAME: this.loadsTable.tableName,
+        DRIVERS_TABLE_NAME: this.driversTable.tableName,
+        BEDROCK_MODEL_ID: 'anthropic.claude-3-haiku-20240307-v1:0',
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+        OPENAI_WHISPER_MODEL: process.env.OPENAI_WHISPER_MODEL || 'whisper-1',
+      },
+      description: 'Transcribe voice input with OpenAI Whisper and parse driver intent',
+    });
+
+    // /voice resource
+    const voiceResource = this.api.root.addResource('voice');
+    
+    // POST /voice
+    voiceResource.addMethod(
+      'POST',
+      new apigateway.LambdaIntegration(voiceInputLambda, {
+        proxy: true,
+        integrationResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': "'*'",
+            },
+          },
+        ],
+      }),
+      {
+        methodResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': true,
+            },
+          },
+        ],
       }
     );
   }
