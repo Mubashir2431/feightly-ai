@@ -693,6 +693,91 @@ export class FeightlyBackendStack extends cdk.Stack {
         ],
       }
     );
+
+    // Corridor Search Lambda - Smart load search with chain discovery
+    const corridorSearchLambda = new lambda.Function(this, 'CorridorSearchLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'corridor-search.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
+      role: this.lambdaExecutionRole,
+      timeout: cdk.Duration.seconds(60),
+      memorySize: 1024,
+      environment: {
+        LOADS_TABLE_NAME: this.loadsTable.tableName,
+        DRIVERS_TABLE_NAME: this.driversTable.tableName,
+      },
+      description: 'Intelligent load search with corridor chain discovery',
+    });
+
+    // /loads/smart-search resource
+    const smartSearchResource = loadsResource.addResource('smart-search');
+    
+    // POST /loads/smart-search
+    smartSearchResource.addMethod(
+      'POST',
+      new apigateway.LambdaIntegration(corridorSearchLambda, {
+        proxy: true,
+        integrationResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': "'*'",
+            },
+          },
+        ],
+      }),
+      {
+        methodResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': true,
+            },
+          },
+        ],
+      }
+    );
+
+    // Broker Simulator Lambda - Simulates realistic broker negotiation responses
+    const brokerSimulatorLambda = new lambda.Function(this, 'BrokerSimulatorLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'broker-simulator.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
+      role: this.lambdaExecutionRole,
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 512,
+      environment: {},
+      description: 'Simulates realistic broker negotiation responses for testing',
+    });
+
+    // /simulate-broker-response resource
+    const simulateBrokerResource = this.api.root.addResource('simulate-broker-response');
+    
+    // POST /simulate-broker-response
+    simulateBrokerResource.addMethod(
+      'POST',
+      new apigateway.LambdaIntegration(brokerSimulatorLambda, {
+        proxy: true,
+        integrationResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': "'*'",
+            },
+          },
+        ],
+      }),
+      {
+        methodResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': true,
+            },
+          },
+        ],
+      }
+    );
   }
 }
 
