@@ -43,7 +43,7 @@ interface CopilotRequest {
   currentLng?: number;
 }
 
-interface ParsedIntent {
+export interface ParsedIntent {
   tripType: 'one_way' | 'round_trip' | 'open_ended' | 'backhaul' | 'multi_day';
   originCity: string | null;
   originState: string | null;
@@ -59,7 +59,7 @@ interface ParsedIntent {
   notes: string;
 }
 
-interface SearchParams {
+export interface SearchParams {
   originCity?: string;
   destCity?: string;
   equipment?: string;
@@ -71,7 +71,7 @@ interface SearchParams {
 /**
  * Find nearest major city to given coordinates
  */
-function findNearestCity(lat: number, lng: number): { city: string; state: string } {
+export function findNearestCity(lat: number, lng: number): { city: string; state: string } {
   let nearestCity = MAJOR_CITIES[0];
   let minDistance = calculateDistance(lat, lng, nearestCity.lat, nearestCity.lng);
 
@@ -84,6 +84,26 @@ function findNearestCity(lat: number, lng: number): { city: string; state: strin
   }
 
   return { city: nearestCity.city, state: nearestCity.state };
+}
+
+/**
+ * Remove a surrounding markdown code fence (```json ... ``` or ``` ... ```) from LLM output
+ */
+export function stripCodeFences(content: string): string {
+  let cleanContent = content.trim();
+  if (cleanContent.startsWith('```json')) {
+    cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+  } else if (cleanContent.startsWith('```')) {
+    cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+  }
+  return cleanContent.trim();
+}
+
+/**
+ * Parse the model's text output into a ParsedIntent. Throws if the text is not valid JSON.
+ */
+export function parseIntentJson(content: string): ParsedIntent {
+  return JSON.parse(stripCodeFences(content)) as ParsedIntent;
 }
 
 /**
@@ -169,30 +189,15 @@ Output: {"tripType":"one_way","originCity":null,"originState":null,"destCity":"C
       content: content.substring(0, 500), // Log first 500 chars
     });
     
-    // Clean up markdown code blocks if present
-    let cleanContent = content.trim();
-    if (cleanContent.startsWith('```json')) {
-      cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (cleanContent.startsWith('```')) {
-      cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
-    
-    logInfo('Cleaned content', {
-      operation: 'parseIntent',
-      requestId,
-      cleanContent: cleanContent.substring(0, 500),
-    });
-    
-    // Parse the JSON from Claude's response
+    // Strip markdown fences and parse the JSON from Claude's response
     try {
-      const parsed = JSON.parse(cleanContent.trim());
-      return parsed as ParsedIntent;
+      return parseIntentJson(content);
     } catch (parseError: any) {
       logError(parseError, {
         operation: 'parseIntent',
         requestId,
         text,
-        cleanContent: cleanContent.substring(0, 1000),
+        cleanContent: stripCodeFences(content).substring(0, 1000),
         parseErrorMessage: parseError.message,
       });
       throw new Error(`JSON parse failed: ${parseError.message}`);
@@ -210,7 +215,7 @@ Output: {"tripType":"one_way","originCity":null,"originState":null,"destCity":"C
 /**
  * Convert parsed intent to search parameters for load-search API
  */
-function buildSearchParams(parsed: ParsedIntent): SearchParams {
+export function buildSearchParams(parsed: ParsedIntent): SearchParams {
   const params: SearchParams = {};
 
   if (parsed.originCity) {
@@ -239,7 +244,7 @@ function buildSearchParams(parsed: ParsedIntent): SearchParams {
 /**
  * Generate a friendly copilot message confirming what was understood
  */
-function generateCopilotMessage(parsed: ParsedIntent): string {
+export function generateCopilotMessage(parsed: ParsedIntent): string {
   const parts: string[] = [];
 
   if (parsed.tripType === 'backhaul') {

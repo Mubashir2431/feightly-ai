@@ -95,7 +95,7 @@ interface SmartSearchRequest {
   searchMode?: string;
 }
 
-interface LoadWithScore {
+export interface LoadWithScore {
   load: Load;
   tripScore: number;
   deadheadMiles: number;
@@ -103,7 +103,7 @@ interface LoadWithScore {
   marketComparison: 'above' | 'at' | 'below';
 }
 
-interface LoadChain {
+export interface LoadChain {
   chainId: string;
   legs: LoadWithScore[];
   chainScore: number;
@@ -114,7 +114,7 @@ interface LoadChain {
   summary: string;
 }
 
-interface MarketInsight {
+export interface MarketInsight {
   avgMarketRate: number;
   loadCount: number;
   recommendation: string;
@@ -125,7 +125,7 @@ interface MarketInsight {
 /**
  * Normalize value to 0-10 range
  */
-function normalize(value: number, min: number, max: number): number {
+export function normalize(value: number, min: number, max: number): number {
   const clamped = Math.max(min, Math.min(max, value));
   return ((clamped - min) / (max - min)) * 10;
 }
@@ -133,7 +133,7 @@ function normalize(value: number, min: number, max: number): number {
 /**
  * Calculate trip score for a single load
  */
-function calculateTripScore(load: Load, deadheadMiles: number): number {
+export function calculateTripScore(load: Load, deadheadMiles: number): number {
   const ratePerMile = load.postedRate; // postedRate is already rate-per-mile
   const rateScore = normalize(ratePerMile, 1.5, 3.5);
   const deadheadScore = Math.max(0, 10 - (deadheadMiles / 20));
@@ -145,7 +145,7 @@ function calculateTripScore(load: Load, deadheadMiles: number): number {
 /**
  * Calculate chain score for a load chain
  */
-function calculateChainScore(chain: LoadChain): number {
+export function calculateChainScore(chain: LoadChain): number {
   const revenuePerMile = chain.totalRevenue / chain.totalMiles;
   const avgMarketScore = chain.legs.reduce((sum, leg) => {
     const marketRatio = leg.load.postedRate / leg.load.marketRateAvg;
@@ -157,9 +157,19 @@ function calculateChainScore(chain: LoadChain): number {
 }
 
 /**
+ * Compare a load's posted rate to the lane's market average.
+ * More than 5% above market is "above", more than 5% below is "below", otherwise "at".
+ */
+export function classifyMarket(load: Load): 'above' | 'at' | 'below' {
+  if (load.postedRate > load.marketRateAvg * 1.05) return 'above';
+  if (load.postedRate < load.marketRateAvg * 0.95) return 'below';
+  return 'at';
+}
+
+/**
  * Check if a load destination is "toward" the final destination
  */
-function isTowardDestination(
+export function isTowardDestination(
   loadOrigin: LocationBase,
   loadDest: LocationBase,
   finalDest: LocationBase
@@ -235,7 +245,7 @@ async function getDriver(driverId: string, requestId?: string): Promise<Driver |
 /**
  * Search for direct loads (one_way mode)
  */
-async function searchDirectLoads(
+export async function searchDirectLoads(
   origin: LocationBase,
   destination: LocationBase,
   driverLocation: LocationBase,
@@ -261,9 +271,7 @@ async function searchDirectLoads(
       const tripScore = calculateTripScore(load, deadheadMiles);
       const revenuePerMile = load.postedRate; // postedRate is already rate-per-mile
       
-      let marketComparison: 'above' | 'at' | 'below' = 'at';
-      if (load.postedRate > load.marketRateAvg * 1.05) marketComparison = 'above';
-      else if (load.postedRate < load.marketRateAvg * 0.95) marketComparison = 'below';
+      const marketComparison = classifyMarket(load);
       
       directLoads.push({ load, tripScore, deadheadMiles, revenuePerMile, marketComparison });
     }
@@ -276,7 +284,7 @@ async function searchDirectLoads(
 /**
  * Search for load chains (corridor_chain mode)
  */
-async function searchCorridorChains(
+export async function searchCorridorChains(
   origin: LocationBase,
   destination: LocationBase,
   driverLocation: LocationBase,
@@ -305,8 +313,7 @@ async function searchCorridorChains(
       tripScore: calculateTripScore(firstLoad, deadheadToFirst),
       deadheadMiles: deadheadToFirst,
       revenuePerMile: firstLoad.postedRate, // postedRate is already rate-per-mile
-      marketComparison: firstLoad.postedRate > firstLoad.marketRateAvg * 1.05 ? 'above' :
-                        firstLoad.postedRate < firstLoad.marketRateAvg * 0.95 ? 'below' : 'at',
+      marketComparison: classifyMarket(firstLoad),
     };
     
     const distToFinalDest = calculateDistance(
@@ -348,8 +355,7 @@ async function searchCorridorChains(
           tripScore: calculateTripScore(secondLoad, deadheadToSecond),
           deadheadMiles: deadheadToSecond,
           revenuePerMile: secondLoad.postedRate, // postedRate is already rate-per-mile
-          marketComparison: secondLoad.postedRate > secondLoad.marketRateAvg * 1.05 ? 'above' :
-                            secondLoad.postedRate < secondLoad.marketRateAvg * 0.95 ? 'below' : 'at',
+          marketComparison: classifyMarket(secondLoad),
         };
         
         const chain: LoadChain = {
@@ -376,7 +382,7 @@ async function searchCorridorChains(
 /**
  * Generate market insight and recommendation
  */
-function generateMarketInsight(
+export function generateMarketInsight(
   directLoads: LoadWithScore[],
   chains: LoadChain[]
 ): MarketInsight {

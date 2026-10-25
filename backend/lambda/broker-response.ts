@@ -45,7 +45,7 @@ const bedrockClient = new BedrockRuntimeClient({
  * Parse broker's counter-offer from email body
  * Looks for dollar amounts or rate per mile mentions
  */
-function parseCounterOffer(emailBody: string, counterOffer?: number): number | null {
+export function parseCounterOffer(emailBody: string, counterOffer?: number): number | null {
   // If counter-offer is explicitly provided, use it
   if (counterOffer !== undefined && counterOffer !== null) {
     return counterOffer;
