@@ -1,3 +1,5 @@
+[![Backend CI](https://github.com/Mubashir2431/feightly-ai/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Mubashir2431/feightly-ai/actions/workflows/backend-ci.yml)
+
 # Feightly.ai Backend Infrastructure
 
 This directory contains the AWS CDK infrastructure code for the feightly.ai backend.
@@ -458,3 +460,17 @@ For issues or questions, refer to:
 - [AWS CDK Documentation](https://docs.aws.amazon.com/cdk/)
 - [AWS Lambda Documentation](https://docs.aws.amazon.com/lambda/)
 - [Amazon Bedrock Documentation](https://docs.aws.amazon.com/bedrock/)
+
+## Testing and CI/CD
+
+The Freightly.ai backend has automated tests under `backend/test` (Jest and ts-jest, 99 tests). They cover load search scoring and corridor chains, load booking, the copilot natural-language parsing, the shared helpers, and the CDK stack template. AWS calls are mocked, so no AWS account is needed.
+
+```bash
+cd backend
+npm ci
+npx jest --coverage
+```
+
+Coverage is about 49% of lines overall. The core search, booking and copilot lambdas are above 98%, and Jest enforces thresholds on them.
+
+A GitHub Actions workflow (`.github/workflows/backend-ci.yml`) runs on pushes and pull requests to `master` that touch `backend/`. It installs dependencies, type checks, runs the tests with coverage, and runs `cdk synth`. On a push to `master` a deploy job runs `cdk deploy`, but only if the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` repository secrets are set. Without them the job is skipped.

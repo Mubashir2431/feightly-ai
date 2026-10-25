@@ -49,3 +49,6 @@ backend/*.js
 backend/*.d.ts
 backend/!jest.config.js
 backend/.env
+
+# Test coverage output
+backend/coverage/
